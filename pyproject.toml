@@ -1,0 +1,51 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "snapimport"
+version = "0.1.0"
+description = "SD card to dated perfection in one drag. Prettier, friendlier, still macOS native."
+readme = "README.md"
+license = {file = "LICENSE"}
+requires-python = ">=3.8"
+authors = [
+    {name = "Charlie Ichikowitz", email = "charlie@example.com"},
+]
+dependencies = [
+    "typer",
+    "rich==13.7.1",
+    "pydantic-settings",
+    "tomlkit",
+    "psutil",
+    "PyExifTool",
+    "platformdirs",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: MacOS",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+[project.scripts]
+snapimport = "snapimport.cli:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/snapimport"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py38"
+
+[tool.black]
+line-length = 88
+
+[tool.isort]
+profile = "black"
