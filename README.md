@@ -49,7 +49,7 @@ pipx install snapimport
 ### From Source
 
 ```bash
-git clone https://github.com/yourusername/snapimport.git
+git clone https://github.com/ImBisy/SnapImport.git
 cd snapimport
 uv build
 uv tool install --force .
