@@ -5,29 +5,29 @@ from typing import List, Tuple
 
 from .sd import EXTENSIONS
 
+
 def find_files(folder: Path) -> List[Path]:
     files = []
     for ext in EXTENSIONS:
-        files.extend(folder.rglob(f'*{ext}'))
+        files.extend(folder.rglob(f"*{ext}"))
     return sorted(files)
+
 
 def get_exif_date(file: Path) -> str | None:
     try:
         result = subprocess.run(
-            ['exiftool', '-DateTimeOriginal', '-d', '%y-%m-%d', str(file)],
+            ["exiftool", "-DateTimeOriginal", "-d", "%y-%m-%d", str(file)],
             capture_output=True,
             text=True,
         )
         output = result.stdout.strip()
-        if output:
-            # exiftool outputs like "Date/Time Original              : 24-02-24"
-            # So, extract the date part
-            parts = output.split(':')
-            if len(parts) > 1:
-                return parts[1].strip()
+        # exiftool outputs like "Date/Time Original              : 24-02-24"
+        if output and ":" in output:
+            return output.split(":", 1)[1].strip()
     except Exception:
         pass
     return None
+
 
 def get_renames(files: List[Path], target_folder: Path) -> List[Tuple[str, str]]:
     date_counts = defaultdict(int)
@@ -42,7 +42,10 @@ def get_renames(files: List[Path], target_folder: Path) -> List[Tuple[str, str]]
         renames.append((str(file), str(new_path)))
     return renames
 
-def rename_files_in_folder(folder: Path, dry_run: bool = False) -> List[Tuple[str, str]]:
+
+def rename_files_in_folder(
+    folder: Path, dry_run: bool = False
+) -> List[Tuple[str, str]]:
     files = find_files(folder)
     renames = get_renames(files, folder)
     if not dry_run:

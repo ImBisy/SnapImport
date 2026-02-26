@@ -22,6 +22,9 @@ def _mock_run_factory(dates):
             date = ""
         else:
             date = dates.pop(0)
+        # simulate empty output for none case
+        if date == "":
+            return _Res("")
         return _Res(f"Date/Time Original              : {date}")
 
     return _fake_run
