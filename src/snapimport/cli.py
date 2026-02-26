@@ -1,3 +1,4 @@
+import sys
 import typer
 from pathlib import Path
 from typing import Optional
@@ -61,13 +62,11 @@ def detect_sd():
 
 @app.command("gui")
 def gui():
-    try:
-        from .gui import start_gui
-        start_gui()
-        ui.run(title="SnapImport", native=True, window_size=(780, 580), reload=False)
-    except ImportError:
-        console.print("GUI requires nicegui. Install with: pip install nicegui")
-        return
+    import os
+    os.execv(sys.executable, [
+        sys.executable, "-c",
+        "from snapimport.gui import start_gui; from nicegui import ui; ui.run(title='SnapImport', native=False, reload=False, window_size=(780, 580))"
+    ])
 
 def run_wizard():
     show_welcome_panel()
