@@ -2,6 +2,8 @@ import typer
 from pathlib import Path
 from typing import Optional
 
+from nicegui import ui
+
 from .config import Config, config_exists, load_config, save_config
 from .core import import_photos
 from .progress import (
@@ -62,8 +64,9 @@ def gui():
     try:
         from .gui import start_gui
         start_gui()
+        ui.run(title="SnapImport", native=True, window_size=(780, 580), reload=False)
     except ImportError:
-        console.print("GUI requires tkinter. Install with: pip install tk")
+        console.print("GUI requires nicegui. Install with: pip install nicegui")
         return
 
 def run_wizard():

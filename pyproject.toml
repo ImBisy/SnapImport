@@ -20,6 +20,8 @@ dependencies = [
     "psutil",
     "PyExifTool",
     "platformdirs",
+    "nicegui>=1.4",
+    "pywebview>=4.0",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
