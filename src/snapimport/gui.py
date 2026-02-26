@@ -1,3 +1,4 @@
+import asyncio
 import os
 import shutil
 from pathlib import Path
@@ -8,6 +9,7 @@ from .rename import find_files, get_renames, rename_files_in_folder
 from .core import log_seen_files
 
 
+@ui.page('/')
 def start_gui():
     ui.dark_mode().enable()
 
@@ -32,8 +34,10 @@ def start_gui():
 def setup_step():
     if config_exists():
         config = load_config()
-        photos_input = ui.input('Photos Directory', value=config.photos_dir).set_enabled(False)
-        logs_input = ui.input('Logs Directory', value=config.logs_dir).set_enabled(False)
+        photos_input = ui.input('Photos Directory', value=str(config.photos_dir))
+        photos_input.set_enabled(False)
+        logs_input = ui.input('Logs Directory', value=str(config.logs_dir))
+        logs_input.set_enabled(False)
         edit_toggle = ui.switch('Edit')
         def toggle_edit():
             enabled = edit_toggle.value
@@ -44,26 +48,19 @@ def setup_step():
         photos_input = ui.input('Photos Directory')
         logs_input = ui.input('Logs Directory')
 
+    async def pick_photos():
+        await open_file_dialog(photos_input)
+
     def save_config_action():
         try:
-            save_config(Config(photos_dir=Path(photos_input.value).expanduser(), logs_dir=Path(logs_input.value).expanduser()))
+            save_config(Config(photos_dir=str(Path(photos_input.value).expanduser()), logs_dir=str(Path(logs_input.value).expanduser())))
             ui.notify('Config saved ✔', type='positive')
         except Exception as e:
             ui.notify(str(e), type='negative')
 
     ui.button('Save Config', on_click=save_config_action)
-
-    def open_file_dialog(input_field):
-        try:
-            import webview
-            paths = app.native.main_window.create_file_dialog(webview.FOLDER_DIALOG)
-            if paths:
-                input_field.value = paths[0]
-        except:
-            ui.notify('File dialog not available in this mode.', type='negative')
-
-    ui.button('Pick Photos Folder', on_click=lambda: open_file_dialog(photos_input))
-    ui.button('Pick Logs Folder', on_click=lambda: open_file_dialog(logs_input))
+    ui.button('Pick Photos Folder', on_click=lambda: asyncio.create_task(open_file_dialog(photos_input)))
+    ui.button('Pick Logs Folder', on_click=lambda: asyncio.create_task(open_file_dialog(logs_input)))
 
 sd_table = None
 sd_spinner = None
@@ -196,7 +193,11 @@ rename_button = None
 def rename_folder_step():
     global rename_path_input, rename_button
     rename_path_input = ui.input('Folder to Rename')
-    ui.button('Pick Folder', on_click=lambda: open_file_dialog(rename_path_input))
+    
+    async def pick_rename():
+        await open_file_dialog(rename_path_input)
+    
+    ui.button('Pick Folder', on_click=pick_rename)
     rename_button = ui.button('Rename', on_click=do_rename)
 
 async def do_rename():
@@ -215,11 +216,14 @@ async def do_rename():
         rename_button.enable()
 
 
-def open_file_dialog(input_field):
-    try:
-        import webview
-        paths = app.native.main_window.create_file_dialog(webview.FOLDER_DIALOG)
-        if paths:
-            input_field.value = paths[0]
-    except:
+async def open_file_dialog(input_field):
+    if app.native.main_window is None:
         ui.notify('File dialog not available in this mode.', type='negative')
+    else:
+        try:
+            import webview
+            paths = await app.native.main_window.create_file_dialog(webview.FOLDER_DIALOG)
+            if paths:
+                input_field.value = paths[0]
+        except:
+            ui.notify('File dialog not available in this mode.', type='negative')
