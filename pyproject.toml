@@ -23,6 +23,9 @@ dependencies = [
     "nicegui>=1.4",
     "pywebview>=4.0",
 ]
+ 
+ [project.optional-dependencies]
+ tests = ["pytest"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: End Users/Desktop",
