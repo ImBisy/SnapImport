@@ -57,6 +57,15 @@ def detect_sd():
         table.add_row(path, "Yes ✨" if has else "No")
     console.print(table)
 
+@app.command("gui")
+def gui():
+    try:
+        from .gui import start_gui
+        start_gui()
+    except ImportError:
+        console.print("GUI requires tkinter. Install with: pip install tk")
+        return
+
 def run_wizard():
     show_welcome_panel()
     while True:
