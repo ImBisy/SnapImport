@@ -22,6 +22,9 @@ dependencies = [
   "platformdirs",
   "nicegui>=1.4",
   "pywebview>=4.0",
+  "fastapi>=0.111",
+  "uvicorn>=0.29",
+  "sse-starlette>=1.8",
 ]
 classifiers = [
   "Development Status :: 4 - Beta",
@@ -37,10 +40,22 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
-tests = ["pytest"]
+tests = ["pytest", "pytest-cov", "piexif"]
+
+[tool.pytest.ini_options]
+markers = [
+  "unit: fast isolated tests for individual functions",
+  "integration: full journey tests using fixtures",
+  "cli: tests that exercise the Typer CLI via CliRunner",
+]
+addopts = "--cov=snapimport --cov-report=term-missing"
+
+[tool.coverage.run]
+omit = ["tests/*", "src/snapimport/api.py", "src/snapimport/gui.py"]
 
 [project.scripts]
 snapimport = "snapimport.cli:app"
+snapimport-api = "snapimport.api:start_api"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/snapimport"]

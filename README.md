@@ -101,8 +101,8 @@ Stored in `~/.config/snapimport/config.toml`:
 # SnapImport Configuration
 # Edit these paths anytime. Nothing else needed for v1.
 
-photos_dir = "/Users/YourName/Pictures/Photos"
-logs_dir = "/Users/YourName/Pictures/SnapImport-Logs"
+photos_dir = "~/Pictures/Photos"
+logs_dir = "~/Pictures/SnapImport-Logs"
 ```
 
 ## Supported Formats
@@ -120,3 +120,43 @@ SnapImport is the spiritual successor to [Photo-Renamer](https://github.com/ImBi
 - Fully typed, tested code
 
 No more shell script hassles – pure Python magic.
+
+## Development
+
+### Running Tests
+
+```bash
+# Run all tests
+pytest
+
+# Run only unit tests (fast)
+pytest -m unit
+
+# Run only integration tests
+pytest -m integration
+
+# Run CLI tests
+pytest -m cli
+
+# Run with coverage
+pytest --cov=snapimport --cov-report=term-missing
+```
+
+### Test Markers
+
+- `unit`: Fast isolated tests for individual functions
+- `integration`: Full journey tests using fixtures
+- `cli`: Tests that exercise the Typer CLI via CliRunner
+
+### Developer Commands
+
+- `snapimport reset-demo` — Developer tool that resets SnapImport to first-run state. Deletes config.toml, first-run marker, seen-files.txt, and import-errors.log. Use `--force` to skip confirmation prompt (useful for scripting).
+
+### Testing Fixtures
+
+Tests use isolated fixtures in `tests/conftest.py`:
+- `isolated_config` — Creates a temp config dir, patches all config paths
+- `fresh_config` — Ensures no config exists (true first-run state)
+- `configured_app` — Pre-writes a valid config.toml
+- `fake_sd` — Creates a temp dir mimicking a real SD card
+- `wizard_inputs` — Patches Prompt.ask to feed deterministic answers
