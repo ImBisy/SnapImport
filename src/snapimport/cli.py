@@ -1,9 +1,15 @@
+"""Command-line interface for SnapImport.
+
+Provides Typer-based CLI commands for importing photos from SD cards,
+detecting SD cards, and managing configuration.
+"""
+
 import sys
+import os
 import typer
 from pathlib import Path
 from typing import Optional
 
-from nicegui import ui
 from rich.panel import Panel
 from rich.prompt import Confirm
 
@@ -32,6 +38,11 @@ app = typer.Typer()
 
 @app.callback(invoke_without_command=True)
 def main(ctx: typer.Context):
+    """Main entry point - shows help or runs wizard/import.
+    
+    Args:
+        ctx: Typer context for command detection.
+    """
     show_header()
     if ctx.invoked_subcommand is None:
         if not config_exists():
@@ -57,6 +68,14 @@ def import_cmd(
         False, "--reconfigure", help="Re-run setup before importing."
     ),
 ):
+    """Import photos from detected SD card.
+    
+    Args:
+        dry_run: Show planned actions without executing.
+        verbose: Print per-file progress.
+        overwrite: Replace existing destination files.
+        reconfigure: Re-run setup before importing.
+    """
     config = load_config()
     if not config:
         show_error_panel("Config not found. Run `snapimport` without args to set up.")
@@ -86,6 +105,13 @@ def rename(
         help="Rename all files, even if already logged as imported.",
     ),
 ):
+    """Rename files in a folder using EXIF data.
+    
+    Args:
+        path: Folder path to rename files in (uses config.photos_dir if None).
+        log: Log renamed files as imported in seen-files.txt.
+        force: Rename files even if already marked as imported.
+    """
     config = load_config()
     if path is None:
         if not config:
@@ -180,9 +206,8 @@ def wizard_cmd():
 
 @app.command("gui")
 def gui():
-    import os
-
-    os.execv(
+    """Launch the web-based GUI interface."""
+    os.execv(  # pragma: no cover
         sys.executable,
         [
             sys.executable,
@@ -194,6 +219,7 @@ def gui():
 
 @app.command("setup")
 def setup_cmd():
+    """Run the setup wizard to configure SnapImport."""
     run_wizard()
     cfg = load_config()
     if cfg:
@@ -275,6 +301,11 @@ def reset_demo_cmd(
 
 
 def run_wizard():
+    """Run the interactive setup wizard to configure SnapImport.
+    
+    Prompts user for photos and logs directories, saves config,
+    and shows welcome panel.
+    """
     show_welcome_panel()
     while True:
         photos_path = prompt_photos_dir()
@@ -327,5 +358,5 @@ def run_wizard():
             pass
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     app()

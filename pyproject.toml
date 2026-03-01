@@ -44,6 +44,8 @@ markers = [
   "cli: tests that exercise the Typer CLI via CliRunner",
 ]
 addopts = "--cov=snapimport --cov-report=term-missing"
+timeout = 10
+timeout_method = "thread"
 
 [tool.coverage.run]
 omit = ["tests/*"]
@@ -63,3 +65,8 @@ line-length = 88
 
 [tool.isort]
 profile = "black"
+
+[dependency-groups]
+dev = [
+    "pytest-timeout>=2.4.0",
+]

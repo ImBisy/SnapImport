@@ -1,4 +1,12 @@
-"""Integration tests for full user journeys using fixtures."""
+"""
+Integration tests for SnapImport (full user journeys).
+
+Tests complete end-to-end flows using CliRunner, including wizard setup,
+import processes, dry runs, verbose output, and reconfigure scenarios.
+
+Relies on: fresh_config, configured_app, fake_sd, wizard_inputs fixtures.
+Run just this file: pytest tests/test_integration.py -v
+"""
 
 from pathlib import Path
 from types import SimpleNamespace
@@ -14,9 +22,7 @@ from snapimport import sd as sd_module
 
 @pytest.mark.integration
 def test_first_time_user_journey(fresh_config, monkeypatch, wizard_inputs):
-    """fresh_config, run snapimport with no args via CliRunner.
-    Assert wizard runs, config.toml created, "SnapImport is Ready" appears.
-    """
+    """Verify first-time user flow runs wizard and creates config."""
     runner = CliRunner()
 
     photos_dir = fresh_config.parent / "photos"
@@ -59,9 +65,7 @@ def test_first_time_user_journey(fresh_config, monkeypatch, wizard_inputs):
 
 @pytest.mark.integration
 def test_import_journey(configured_app, fake_sd, monkeypatch):
-    """configured_app + fake_sd, run snapimport import.
-    Assert files copied, seen-files.txt written, "Import Complete" appears.
-    """
+    """Verify full import journey copies files and shows success panel."""
     runner = CliRunner()
 
     def mock_get_config_path():
@@ -99,7 +103,7 @@ def test_import_journey(configured_app, fake_sd, monkeypatch):
 
 @pytest.mark.integration
 def test_dry_run_journey(configured_app, fake_sd, monkeypatch):
-    """Same but --dry-run. Assert no files copied, "[DRY RUN]" in output, seen-files.txt not written."""
+    """Verify dry-run shows planned actions without modifying files."""
     runner = CliRunner()
 
     def mock_get_config_path():
@@ -137,9 +141,7 @@ def test_dry_run_journey(configured_app, fake_sd, monkeypatch):
 
 @pytest.mark.integration
 def test_repeat_import_is_idempotent(configured_app, fake_sd, monkeypatch):
-    """Run import twice, assert second run skips all (skipped_seen == N).
-    Assert seen-files.txt has no duplicate entries.
-    """
+    """Verify second import skips all files due to seen-files.txt."""
     runner = CliRunner()
 
     def mock_get_config_path():
@@ -182,10 +184,7 @@ def test_repeat_import_is_idempotent(configured_app, fake_sd, monkeypatch):
 
 @pytest.mark.integration
 def test_reconfigure_journey(configured_app, monkeypatch, wizard_inputs):
-    """Run snapimport setup with new wizard_inputs.
-    Assert config.toml updated, "Config updated!" in output.
-    Assert "SnapImport is Ready" does NOT appear (not first run) when marker exists.
-    """
+    """Verify reconfigure updates config without showing welcome panel."""
     runner = CliRunner()
 
     config_dir = configured_app["config_dir"]
@@ -218,7 +217,7 @@ def test_reconfigure_journey(configured_app, monkeypatch, wizard_inputs):
 
 @pytest.mark.integration
 def test_verbose_journey(configured_app, fake_sd, monkeypatch):
-    """Run import --verbose, assert per-file lines with "→" appear for every file."""
+    """Verify verbose mode shows per-file '→' arrows during import."""
     runner = CliRunner()
 
     def mock_get_config_path():
@@ -254,7 +253,7 @@ def test_verbose_journey(configured_app, fake_sd, monkeypatch):
 
 @pytest.mark.integration
 def test_overwrite_journey_no_flag(fake_sd_with_conflict, monkeypatch):
-    """fake_sd_with_conflict: without --overwrite assert file not replaced."""
+    """Verify import without overwrite flag skips existing files."""
     runner = CliRunner()
 
     configured_app = fake_sd_with_conflict
@@ -301,7 +300,7 @@ logs_dir = "{configured_app["logs_dir"]}"
 
 @pytest.mark.integration
 def test_overwrite_journey_with_flag(fake_sd_with_conflict, monkeypatch):
-    """fake_sd_with_conflict: with --overwrite assert file is replaced."""
+    """Verify import with overwrite flag replaces existing files."""
     runner = CliRunner()
 
     configured_app = fake_sd_with_conflict

@@ -13,14 +13,6 @@ SD card to dated perfection in one drag. Prettier, friendlier, still macOS nativ
    → drag your photos folder, hit enter for logs → done forever
 3. `snapimport import` (or `--dry-run` first)
 
-![Setup Wizard](https://via.placeholder.com/600x300?text=Setup+Wizard+GIF)
-
-![Live Progress Bar](https://via.placeholder.com/600x300?text=Live+Progress+Bar+GIF)
-
-![Dry Run Table](https://via.placeholder.com/600x300?text=Dry+Run+Table+Screenshot)
-
-![Success Panel](https://via.placeholder.com/600x300?text=Success+Panel+Screenshot)
-
 ## Features
 
 - **Seamless Setup**: First-time wizard guides you through configuration in under 20 seconds.
@@ -155,6 +147,7 @@ pytest --cov=snapimport --cov-report=term-missing
 ### Testing Fixtures
 
 Tests use isolated fixtures in `tests/conftest.py`:
+
 - `isolated_config` — Creates a temp config dir, patches all config paths
 - `fresh_config` — Ensures no config exists (true first-run state)
 - `configured_app` — Pre-writes a valid config.toml

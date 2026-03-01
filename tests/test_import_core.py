@@ -1,4 +1,12 @@
-"""Unit tests for core import functionality."""
+"""
+Unit tests for core import functionality (snapimport.core module).
+
+Tests import_photos function, copy operations, seen-file handling,
+error collection, and edge cases like empty SD cards.
+
+Relies on: isolated_config, configured_app, fake_sd, wizard_inputs fixtures.
+Run just this file: pytest tests/test_import_core.py -v
+"""
 
 import io
 from unittest.mock import patch
@@ -41,7 +49,7 @@ def _make_config(tmp_dest: Path, tmp_logs: Path):
 
 @pytest.mark.unit
 def test_post_import_summary_counts(tmp_path, monkeypatch):
-    # Setup fake SD with 2 images
+    """Verify import stats show correct counts for copied files."""
     sd = _make_fake_sd(tmp_path, n=2)
     dest = tmp_path / "dest"
     logs = tmp_path / "logs"
@@ -66,8 +74,9 @@ def test_post_import_summary_counts(tmp_path, monkeypatch):
     assert len([p for p in related_files if p.is_file()]) == 2
 
 
-@pytest.mark.unit
+@pytest.mark.integration
 def test_skipped_seen_files(tmp_path, monkeypatch):
+    """Verify files in seen-files.txt are not re-copied."""
     sd = _make_fake_sd(tmp_path, n=2)
     dest = tmp_path / "dest2"
     logs = tmp_path / "logs2"
@@ -89,7 +98,7 @@ def test_skipped_seen_files(tmp_path, monkeypatch):
 
 @pytest.mark.unit
 def test_conflict_skip_no_overwrite(tmp_path, monkeypatch):
-    # Create SD with only 1 file to avoid confusion
+    """Verify destination file is skipped when overwrite=False."""
     sd = tmp_path / "SD"
     dcim = sd / "DCIM"
     dcim.mkdir(parents=True, exist_ok=True)
@@ -138,9 +147,9 @@ def test_conflict_skip_no_overwrite(tmp_path, monkeypatch):
     )
 
 
-@pytest.mark.unit
+@pytest.mark.integration
 def test_conflict_overwrite_flag(tmp_path, monkeypatch):
-    # Create SD with only 1 file
+    """Verify destination file is replaced when overwrite=True."""
     sd = tmp_path / "SD"
     dcim = sd / "DCIM"
     dcim.mkdir(parents=True, exist_ok=True)
@@ -181,8 +190,9 @@ def test_conflict_overwrite_flag(tmp_path, monkeypatch):
     assert dest_path.read_bytes() != b"old content"
 
 
-@pytest.mark.unit
+@pytest.mark.integration
 def test_failure_collection_and_log(tmp_path, monkeypatch):
+    """Verify import errors are collected and logged to import-errors.log."""
     sd = _make_fake_sd(tmp_path, n=2)
     dest = tmp_path / "dest5"
     logs = tmp_path / "logs5"
@@ -207,7 +217,7 @@ def test_failure_collection_and_log(tmp_path, monkeypatch):
         assert unreadable.name in content
 
 
-@pytest.mark.unit
+@pytest.mark.integration
 def test_empty_sd_card(tmp_path, monkeypatch):
     """Test that import handles empty SD card gracefully."""
     sd = tmp_path / "SD"
@@ -230,8 +240,8 @@ def test_empty_sd_card(tmp_path, monkeypatch):
         assert result.get("copied", 0) == 0
 
 
-@pytest.mark.unit
-def test_all_files_already_seen(tmp_path, monkeypatch):
+@pytest.mark.integration
+def test_copy_failure_logging(tmp_path, monkeypatch):
     """Test that all files are skipped when already in seen-files.txt."""
     sd = _make_fake_sd(tmp_path, n=2)
     dest = tmp_path / "dest_seen"
@@ -289,5 +299,15 @@ def test_import_errors_log_format(tmp_path, monkeypatch):
     # Should contain filename, reason, and suggestion (pipe-delimited)
     assert "IMG_001.JPG" in content
     assert "Copy failed" in content
+    assert "Check permissions" in content
     # Check format: should have pipe delimiters
     assert " | " in content
+    
+    # Check specific line format: filename | reason | suggestion
+    lines = content.strip().split('\n')
+    assert len(lines) >= 1
+    parts = lines[0].split(' | ')
+    assert len(parts) == 3
+    assert parts[0].endswith("IMG_001.JPG")
+    assert parts[1] == "Copy failed"
+    assert parts[2] == "Check permissions"

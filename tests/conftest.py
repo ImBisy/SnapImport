@@ -1,3 +1,28 @@
+"""
+Test fixtures and configuration for SnapImport tests.
+
+Fixtures:
+- isolated_config: Creates temp config dir, patches config paths.
+  Used by: All tests that need isolated config.
+  Extend by: Adding subdirs or patching additional modules.
+
+- fresh_config: Ensures no config exists (first-run state).
+  Used by: Tests for first-time user flows.
+  Extend by: Adding mock patches for prompts.
+
+- configured_app: Pre-writes valid config.toml.
+  Used by: Tests that require existing config.
+  Extend by: Modifying config values before writing.
+
+- fake_sd: Creates temp dir mimicking SD card with test files.
+  Used by: Import tests that need source files.
+  Extend by: Adding different file types or structures.
+
+- wizard_inputs: Patches Prompt.ask for deterministic input.
+  Used by: Wizard and setup tests.
+  Extend by: Adding more side effects or return values.
+"""
+
 import os
 from pathlib import Path
 from unittest.mock import patch
