@@ -20,11 +20,6 @@ dependencies = [
   "psutil",
   "PyExifTool",
   "platformdirs",
-  "nicegui>=1.4",
-  "pywebview>=4.0",
-  "fastapi>=0.111",
-  "uvicorn>=0.29",
-  "sse-starlette>=1.8",
 ]
 classifiers = [
   "Development Status :: 4 - Beta",
@@ -51,11 +46,10 @@ markers = [
 addopts = "--cov=snapimport --cov-report=term-missing"
 
 [tool.coverage.run]
-omit = ["tests/*", "src/snapimport/api.py", "src/snapimport/gui.py"]
+omit = ["tests/*"]
 
 [project.scripts]
 snapimport = "snapimport.cli:app"
-snapimport-api = "snapimport.api:start_api"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/snapimport"]
