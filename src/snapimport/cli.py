@@ -18,7 +18,13 @@ from .progress import (
     show_success_panel,
     show_welcome_panel,
 )
-from .rename import rename_files_in_folder
+from .rename import (
+    rename_files_in_folder,
+    get_renames_for_folder,
+    execute_renames,
+    find_files,
+    is_already_renamed,
+)
 from .sd import list_all_volumes
 
 app = typer.Typer()
@@ -67,40 +73,100 @@ def import_cmd(
 @app.command()
 def rename(
     path: str = typer.Argument(
-        ..., help="Path to the folder containing photos to rename."
+        None, help="Path to the folder containing photos to rename."
     ),
     log: bool = typer.Option(
         False,
         "--log",
         help="Log renamed files as imported (requires config).",
     ),
+    force: bool = typer.Option(
+        False,
+        "--force",
+        help="Rename all files, even if already logged as imported.",
+    ),
 ):
-    folder = Path(path)
+    config = load_config()
+    if path is None:
+        if not config:
+            show_error_panel(
+                "No path provided and no config found. Run `snapimport wizard` first."
+            )
+            return
+        folder = Path(config.photos_dir)
+    else:
+        folder = Path(path)
+
     if not folder.exists() or not folder.is_dir():
         show_error_panel("The provided path does not exist or is not a directory.")
         return
 
-    renames = rename_files_in_folder(folder)
+    seen_set: set[str] = set()
+    should_log = log and config
+    if not force and should_log:
+        seen_file_path = Path(config.logs_dir) / "seen-files.txt"
+        if seen_file_path.exists():
+            try:
+                with seen_file_path.open("r", encoding="utf-8") as sf:
+                    seen_set = {ln.strip() for ln in sf if ln.strip()}
+            except Exception:
+                pass
 
-    if log:
-        config = load_config()
-        if not config:
-            show_error_panel("No config found. Run `snapimport` first to set up.")
-            return
+    all_renames = get_renames_for_folder(folder)
+    renames = []
+    for old, new in all_renames:
+        if force or not should_log or (new not in seen_set and old not in seen_set):
+            renames.append((old, new))
+
+    execute_renames(renames)
+
+    if config and renames:
         from .core import log_seen_files
 
         logs_dir = Path(config.logs_dir)
         files_to_log = [Path(new) for old, new in renames]
-        log_seen_files(logs_dir, files_to_log)
+        log_seen_files(logs_dir, files_to_log, base_folder=folder)
         show_success_panel(
-            f"Renamed {len(renames)} files in {path} and logged as imported."
+            f"Renamed {len(renames)} files in {folder} and logged as imported."
         )
+    elif renames:
+        show_success_panel(f"Renamed {len(renames)} files in {folder}.")
     else:
-        show_success_panel(f"Renamed {len(renames)} files in {path}.")
+        show_success_panel(f"No files to rename in {folder}.")
 
 
-@app.command("detect-sd")
-def detect_sd():
+@app.command("redo-logs")
+def redo_logs_cmd():
+    """Re-scan photos folder and overwrite logs with all renamed files."""
+    config = load_config()
+    if not config:
+        show_error_panel("No config found. Run `snapimport wizard` first.")
+        return
+
+    photos_path = Path(config.photos_dir)
+    logs_dir = Path(config.logs_dir)
+
+    files = find_files(photos_path)
+    already_renamed = [f for f in files if is_already_renamed(f)]
+
+    log_file = logs_dir / "seen-files.txt"
+    logs_dir.mkdir(parents=True, exist_ok=True)
+
+    with log_file.open("w") as f:
+        for file in already_renamed:
+            try:
+                rel_path = file.relative_to(photos_path.parent)
+                f.write(str(rel_path) + "\n")
+            except ValueError:
+                f.write(str(file) + "\n")
+
+    show_success_panel(f"Logged {len(already_renamed)} files to {log_file}")
+
+
+@app.command("wizard")
+def wizard_cmd():
+    """Run the setup wizard again."""
+    run_wizard()
     volumes = list_all_volumes()
     from rich.table import Table
 
@@ -229,7 +295,24 @@ def run_wizard():
         console.print("✔")
     config = Config(photos_dir=str(photos_path), logs_dir=str(logs_path))
     save_config(config)
-    # First-run confirmation panel (only once)
+
+    files = find_files(photos_path)
+    already_renamed = [f for f in files if is_already_renamed(f)]
+
+    if already_renamed:
+        console.print(
+            f"\n[bold]Detected {len(already_renamed)} already-renamed images in your photos folder.[/bold]"
+        )
+        should_log = Confirm.ask(
+            "Would you like me to log them as already imported?",
+            default=True,
+        )
+        if should_log:
+            from .core import log_seen_files
+
+            log_seen_files(logs_path, already_renamed, base_folder=photos_path)
+            console.print(f"✔ Logged {len(already_renamed)} files")
+
     marker = Path(get_config_path()).parent / ".first_run_done"
     if not marker.exists():
         panel_text = (
