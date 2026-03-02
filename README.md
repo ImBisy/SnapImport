@@ -17,8 +17,8 @@ SD card to dated perfection in one drag. Prettier, friendlier, still macOS nativ
 
 ### Reconfigure Anytime
 
-- `snapimport setup` — Re-run the wizard
-- `snapimport reset-demo` — Developer reset to first-run state
+- `snapimport setup` - Re-run the wizard
+- `snapimport reset-demo` - Developer reset to first-run state
 
 ## Features
 
@@ -140,14 +140,14 @@ uv run pytest --cov=snapimport --cov-report=term-missing
 
 ### Developer Commands
 
-- `snapimport reset-demo` — Developer tool that resets SnapImport to first-run state. Deletes config.toml, first-run marker, seen-files.txt, and import-errors.log. Use `--force` to skip confirmation prompt (useful for scripting).
+- `snapimport reset-demo` - Developer tool that resets SnapImport to first-run state. Deletes config.toml, first-run marker, seen-files.txt, and import-errors.log. Use `--force` to skip confirmation prompt (useful for scripting).
 
 ### Testing Fixtures
 
 Tests use isolated fixtures in `tests/conftest.py`:
 
-- `isolated_config` — Creates a temp config dir, patches all config paths
-- `fresh_config` — Ensures no config exists (true first-run state)
-- `configured_app` — Pre-writes a valid config.toml
-- `fake_sd` — Creates a temp dir mimicking a real SD card
-- `wizard_inputs` — Patches Prompt.ask to feed deterministic answers
+- `isolated_config` - Creates a temp config dir, patches all config paths
+- `fresh_config` - Ensures no config exists (true first-run state)
+- `configured_app` - Pre-writes a valid config.toml
+- `fake_sd` - Creates a temp dir mimicking a real SD card
+- `wizard_inputs` - Patches Prompt.ask to feed deterministic answers
