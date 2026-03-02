@@ -29,10 +29,10 @@ console = Console()
 
 def format_size(num_bytes: int) -> str:
     """Format bytes as human-readable size.
-    
+
     Args:
         num_bytes: Number of bytes to format.
-        
+
     Returns:
         Human-readable string (e.g., "1.23 GB" or "456.78 MB").
     """
@@ -64,9 +64,10 @@ def show_import_complete_panel(
     is_dry_run: bool = False,
     overwritten: int = 0,
     skipped_exists: int = 0,
+    file_list: List[str] | None = None,
 ):
     """Display import completion summary panel.
-    
+
     Args:
         files_copied: Number of files successfully copied.
         total_size_bytes: Total size of all files in bytes.
@@ -77,6 +78,7 @@ def show_import_complete_panel(
         is_dry_run: Whether this was a dry run.
         overwritten: Number of files that were overwritten.
         skipped_exists: Number of files skipped due to existing destination.
+        file_list: Optional list of file names to display as comma-separated.
     """
     # Build a compact summary using a table inside a panel
     title = "[DRY RUN] Import Complete" if is_dry_run else "Import Complete"
@@ -103,13 +105,17 @@ def show_import_complete_panel(
     table.add_row("Skipped (exists)", str(skipped_exists), style=skipped_style)
     table.add_row("Destination", destination)
 
+    if file_list:
+        files_display = ", ".join(file_list)
+        table.add_row("Files", files_display)
+
     panel = Panel(table, title=title, border_style="green")
     console.print(panel)
 
 
 def show_warnings_panel(failures: List[Dict[str, str]]):
     """Display panel with import warnings/failures.
-    
+
     Args:
         failures: List of failure dictionaries with file, reason, suggestion.
     """
@@ -129,11 +135,11 @@ def show_warnings_panel(failures: List[Dict[str, str]]):
 
 def write_import_errors(logs_dir: Path, failures: List[Dict[str, str]]):
     """Write import errors to log file.
-    
+
     Args:
         logs_dir: Directory to write the log file in.
         failures: List of failure dictionaries.
-        
+
     Note:
         Only writes log if there are failures.
         Format: filename | reason | suggestion
@@ -180,7 +186,7 @@ def show_welcome_panel():
 
 def prompt_photos_dir() -> str:
     """Prompt user for photos directory path.
-    
+
     Returns:
         User-provided photos directory path.
     """
@@ -191,10 +197,10 @@ def prompt_photos_dir() -> str:
 
 def prompt_logs_dir(default: str = "~/Pictures/SnapImport-Logs") -> str:
     """Prompt user for logs directory path.
-    
+
     Args:
         default: Default path to suggest.
-        
+
     Returns:
         User-provided logs directory path.
     """
@@ -208,7 +214,7 @@ def prompt_logs_dir(default: str = "~/Pictures/SnapImport-Logs") -> str:
 
 def show_error_panel(message: str):
     """Display error panel.
-    
+
     Args:
         message: Error message to display.
     """
@@ -218,7 +224,7 @@ def show_error_panel(message: str):
 
 def show_success_panel(message: str):
     """Display success panel.
-    
+
     Args:
         message: Success message to display.
     """
@@ -228,7 +234,7 @@ def show_success_panel(message: str):
 
 def create_progress() -> Progress:
     """Create a Rich progress bar with standard columns.
-    
+
     Returns:
         Configured Progress instance.
     """
@@ -244,7 +250,7 @@ def create_progress() -> Progress:
 
 def show_dry_run_table(renames: List[Tuple[str, str]]):
     """Display table of planned renames for dry run.
-    
+
     Args:
         renames: List of (old_path, new_path) tuples.
     """
@@ -258,10 +264,22 @@ def show_dry_run_table(renames: List[Tuple[str, str]]):
 
 def confirm_import() -> bool:
     """Ask user to confirm before starting import.
-    
+
     Returns:
         True if user confirms, False otherwise.
     """
     return Confirm.ask(
         "Ready to import? This will copy and rename files.", default=True
     )
+
+
+def show_fake_sd_ready_panel(fake_sd_path: Path, file_count: int):
+    """Display panel confirming fake SD card is ready.
+
+    Args:
+        fake_sd_path: Path to the fake SD card root.
+        file_count: Number of files seeded in the fake SD.
+    """
+    body = f"Path: {fake_sd_path}\nFiles: {file_count} .ORF + 10 .XMP\n\nRun `snapimport import` to test the flow."
+    panel = Panel(body, title="Fake SD Ready", border_style="green")
+    console.print(panel)

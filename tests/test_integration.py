@@ -339,3 +339,74 @@ logs_dir = "{configured_app["logs_dir"]}"
 
     assert result.exit_code == 0
     assert "overwritten" in result.output.lower() or "Import Complete" in result.output
+
+
+@pytest.mark.integration
+def test_full_fake_sd_journey(tmp_path, monkeypatch):
+    """Verify full fake-sd journey: create fake SD, import, restore, re-import."""
+    runner = CliRunner()
+
+    fake_sd_path = tmp_path / "fake-sd"
+    monkeypatch.setattr(cli_module, "FAKE_SD_PATH", fake_sd_path)
+    monkeypatch.setattr(
+        cli_module,
+        "DEMO_TEMPLATE_DIR",
+        Path(__file__).parent.parent / "src" / "snapimport" / "demo",
+    )
+
+    result = runner.invoke(cli_module.app, ["fake-sd"])
+    assert result.exit_code == 0
+    assert "Fake SD Ready" in result.output
+
+    dcim = fake_sd_path / "DCIM"
+    orf_files_before = list(dcim.glob("IMG_*.ORF"))
+    assert len(orf_files_before) == 10
+
+    photos_dir = tmp_path / "photos"
+    photos_dir.mkdir()
+    logs_dir = tmp_path / "logs"
+    logs_dir.mkdir()
+
+    config_dir = tmp_path / "config"
+    config_dir.mkdir()
+    config_path = config_dir / "config.toml"
+    config_path.write_text(f'photos_dir = "{photos_dir}"\nlogs_dir = "{logs_dir}"\n')
+
+    def mock_get_config_path():
+        return config_path
+
+    def mock_user_config_dir(appname=None, roaming=False):
+        return str(config_dir)
+
+    monkeypatch.setattr(config_module, "get_config_path", mock_get_config_path)
+    monkeypatch.setattr(config_module, "user_config_dir", mock_user_config_dir)
+    monkeypatch.setattr(cli_module, "get_config_path", mock_get_config_path)
+
+    def mock_load_config():
+        return SimpleNamespace(
+            photos_dir=str(photos_dir),
+            logs_dir=str(logs_dir),
+        )
+
+    monkeypatch.setattr(cli_module, "load_config", mock_load_config)
+    monkeypatch.setattr(core_module, "detect_sds", lambda: [str(fake_sd_path)])
+    monkeypatch.setattr(core_module, "confirm_import", lambda: True)
+    monkeypatch.setattr(core_module, "get_exif_date", lambda f: "2023-12-25")
+
+    monkeypatch.setattr("rich.prompt.Confirm.ask", lambda prompt, default=False: True)
+
+    result1 = runner.invoke(cli_module.app, ["import"])
+    assert result1.exit_code == 0
+    assert "Import Complete" in result1.output
+
+    imported_files = list(photos_dir.rglob("*.ORF"))
+    assert len(imported_files) >= 1
+
+    orf_files_after_import = list(dcim.glob("IMG_*.ORF"))
+    assert len(orf_files_after_import) == 10
+
+    result2 = runner.invoke(cli_module.app, ["import"])
+    assert result2.exit_code == 0
+
+    seen_file = logs_dir / "seen-files.txt"
+    assert seen_file.exists()

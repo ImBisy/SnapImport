@@ -35,13 +35,13 @@ from .sd import detect_sds
 
 def copy_file_with_progress(src: Path, dst: Path, progress, task_id) -> bool:
     """Copy a single file with progress tracking.
-    
+
     Args:
         src: Source file path.
         dst: Destination file path.
         progress: Rich progress instance.
         task_id: Progress task ID to update.
-        
+
     Returns:
         True if copy succeeded, False if it failed.
     """
@@ -68,7 +68,7 @@ def copy_files_with_progress(
     seen_set: Set[str] | None = None,
 ):
     """Copy multiple files with progress tracking and conflict handling.
-    
+
     Args:
         files: List of source files to copy.
         dst_dir: Destination directory.
@@ -77,9 +77,9 @@ def copy_files_with_progress(
         verbose: Whether to print per-file progress.
         overwrite: Whether to overwrite existing files.
         seen_set: Set of previously seen file paths to skip.
-        
+
     Returns:
-        Dictionary with copy statistics (copied, failed, skipped_seen, 
+        Dictionary with copy statistics (copied, failed, skipped_seen,
         skipped_exists, overwritten, task_id).
     """
     dst_dir.mkdir(parents=True, exist_ok=True)
@@ -152,10 +152,10 @@ def copy_files_with_progress(
 
 def check_permissions(photos_dir: Path):
     """Check for root-owned files and offer to fix permissions.
-    
+
     Args:
         photos_dir: Directory to check for permission issues.
-        
+
     Note:
         If root-owned files are found, prompts user to run sudo chown.
     """
@@ -175,12 +175,12 @@ def check_permissions(photos_dir: Path):
 
 def log_seen_files(logs_dir: Path, files: List[Path], base_folder: Path | None = None):
     """Log imported files to seen-files.txt for future duplicate detection.
-    
+
     Args:
         logs_dir: Directory containing seen-files.txt.
         files: List of file paths that were successfully imported.
         base_folder: Optional base folder for relative path calculation.
-        
+
     Note:
         Creates logs_dir if it doesn't exist.
         Appends to existing seen-files.txt without creating duplicates.
@@ -206,19 +206,19 @@ def import_photos(
     overwrite: bool = False,
 ):
     """Import photos from SD card to local directory with renaming.
-    
+
     Args:
         config: Configuration containing photos_dir and logs_dir.
         dry_run: If True, show what would be done without copying files.
         verbose: If True, print per-file progress information.
         overwrite: If True, overwrite existing destination files.
-        
+
     Returns:
         Dictionary with import statistics or None if no files found.
-        
+
     Raises:
         SystemExit: If no SD card is detected (exit code 1).
-        
+
     Note:
         - Detects SD cards automatically
         - Loads seen-files.txt to skip previously imported files
@@ -340,6 +340,12 @@ def import_photos(
         else 0
     )
     renames_post = get_renames(find_files(photos_dir), photos_dir)
+
+    copied_files = (
+        result.get("copied", []) if isinstance(locals().get("result"), dict) else []
+    )
+    file_names = [Path(f).name for f in copied_files]
+
     progress_mod.show_import_complete_panel(
         files_copied=len(files)
         if not isinstance(locals().get("result"), dict)
@@ -354,6 +360,7 @@ def import_photos(
         overwritten=overwritten,
         skipped_exists=skipped_exists,
         is_dry_run=False,
+        file_list=file_names if file_names else None,
     )
     show_success_panel(
         f"Imported {len(files)} photos like a fucking pro • {total_size / (1024**3):.2f} GB • Done!"
@@ -378,5 +385,6 @@ def import_photos(
         else 0,
         "renamed": len(renames_post),
         "total_size": total_size,
+        "source_volume": Path(sd_path),
     }
     return stats

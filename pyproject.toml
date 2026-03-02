@@ -36,7 +36,7 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
-tests = ["pytest", "pytest-cov", "piexif"]
+tests = ["pytest", "pytest-cov", "piexif", "pillow"]
 
 [tool.pytest.ini_options]
 markers = [

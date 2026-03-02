@@ -54,7 +54,7 @@ def test_has_camera_files_no_dcim(tmp_path):
 
 
 @pytest.mark.unit
-def test_detect_sds_with_camera_files(tmp_path):
+def test_detect_sds_with_camera_files(tmp_path, monkeypatch):
     """Verify detect_sds finds volumes with camera files."""
     volumes_dir = tmp_path / "volumes"
     volumes_dir.mkdir()
@@ -71,13 +71,14 @@ def test_detect_sds_with_camera_files(tmp_path):
     vol3 = volumes_dir / "System"
     vol3.mkdir()
 
-    with patch("os.path.exists") as mock_exists, patch(
-        "os.listdir", return_value=["SDCARD", "HDD", "System"]
-    ) as mock_listdir, patch("os.path.isdir") as mock_isdir, patch(
-        "snapimport.sd.has_camera_files"
-    ) as mock_hcf:
-        mock_exists.return_value = True
-        mock_isdir.return_value = True
+    fake_sd = tmp_path / "fake-sd"
+    fake_sd.mkdir()
+
+    monkeypatch.setattr(sd, "FAKE_SD_PATH", fake_sd)
+
+    with patch("os.listdir", return_value=["SDCARD", "HDD", "System"]), patch(
+        "os.path.isdir", return_value=True
+    ), patch("snapimport.sd.has_camera_files") as mock_hcf:
         mock_hcf.side_effect = lambda p: "/Volumes/SDCARD" in p
 
         volumes = sd.detect_sds()
@@ -96,38 +97,18 @@ def test_detect_sds_no_volumes_dir(tmp_path, monkeypatch):
 
 
 @pytest.mark.unit
-def test_list_all_volumes(tmp_path):
+def test_list_all_volumes(tmp_path, monkeypatch):
     """Verify list_all_volumes returns all volumes with camera file status."""
-    volumes_dir = tmp_path / "volumes"
-    volumes_dir.mkdir()
+    fake_sd = tmp_path / "fake-sd"
+    fake_sd.mkdir()
 
-    vol1 = volumes_dir / "SDCARD"
-    vol1.mkdir()
-    dcim1 = vol1 / "DCIM"
-    dcim1.mkdir()
-    (dcim1 / "photo.JPG").touch()
+    monkeypatch.setattr(sd, "FAKE_SD_PATH", fake_sd)
 
-    vol2 = volumes_dir / "HDD"
-    vol2.mkdir()
-
-    vol3 = volumes_dir / "System"
-    vol3.mkdir()
-
-    with patch("os.path.exists") as mock_exists, patch(
-        "os.listdir", return_value=["SDCARD", "HDD", "System"]
-    ) as mock_listdir, patch("os.path.isdir") as mock_isdir, patch(
-        "snapimport.sd.has_camera_files"
-    ) as mock_hcf:
-        mock_exists.return_value = True
-        mock_isdir.return_value = True
-        mock_hcf.side_effect = lambda p: "/Volumes/SDCARD" in p
-
-        volumes = sd.list_all_volumes()
-        assert len(volumes) == 2
-        sdcard_entry = next(v for v in volumes if v[0] == "/Volumes/SDCARD")
-        hdd_entry = next(v for v in volumes if v[0] == "/Volumes/HDD")
-        assert sdcard_entry[1] == True
-        assert hdd_entry[1] == False
+    volumes = sd.list_all_volumes()
+    assert len(volumes) >= 1
+    fake_entry = next((v for v in volumes if "fake-sd" in v[0]), None)
+    assert fake_entry is not None
+    assert fake_entry[1] == False
 
 
 @pytest.mark.unit

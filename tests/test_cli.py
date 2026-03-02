@@ -488,3 +488,186 @@ def test_reset_demo_missing_files_ok(tmp_path, monkeypatch):
 
     assert result.exit_code == 0
     assert "No state files found" in result.output
+
+
+@pytest.mark.cli
+def test_fake_sd_creates_dcim_and_seeds_files(tmp_path, monkeypatch):
+    """Verify fake-sd command creates DCIM folder and seeds 10 ORF + 10 XMP files."""
+    runner = CliRunner()
+
+    fake_sd_path = tmp_path / "fake-sd"
+
+    monkeypatch.setattr(cli_module, "FAKE_SD_PATH", fake_sd_path)
+    monkeypatch.setattr(
+        cli_module,
+        "DEMO_TEMPLATE_DIR",
+        Path(__file__).parent.parent / "src" / "snapimport" / "demo",
+    )
+
+    result = runner.invoke(cli_module.app, ["fake-sd"])
+
+    assert result.exit_code == 0
+    dcim = fake_sd_path / "DCIM"
+    assert dcim.exists()
+    orf_files = list(dcim.glob("IMG_*.ORF"))
+    xmp_files = list(dcim.glob("IMG_*.XMP"))
+    assert len(orf_files) == 10
+    assert len(xmp_files) == 10
+    assert "Fake SD Ready" in result.output
+
+
+@pytest.mark.cli
+def test_fake_sd_overwrites_existing(tmp_path, monkeypatch):
+    """Verify fake-sd command overwrites stale files with fresh template files."""
+    runner = CliRunner()
+
+    fake_sd_path = tmp_path / "fake-sd"
+    dcim = fake_sd_path / "DCIM"
+    dcim.mkdir(parents=True)
+    (dcim / "IMG_0001.ORF").write_text("stale content")
+    (dcim / "stale_file.txt").write_text("should be removed")
+
+    monkeypatch.setattr(cli_module, "FAKE_SD_PATH", fake_sd_path)
+    monkeypatch.setattr(
+        cli_module,
+        "DEMO_TEMPLATE_DIR",
+        Path(__file__).parent.parent / "src" / "snapimport" / "demo",
+    )
+
+    result = runner.invoke(cli_module.app, ["fake-sd"])
+
+    assert result.exit_code == 0
+    orf_files = list(dcim.glob("IMG_*.ORF"))
+    assert len(orf_files) == 10
+    assert not (dcim / "stale_file.txt").exists()
+
+
+@pytest.mark.cli
+def test_import_prompts_restore_when_source_is_fake_sd(tmp_path, monkeypatch):
+    """Verify import prompts restore when source is fake-sd and user confirms."""
+    runner = CliRunner()
+
+    fake_sd_path = tmp_path / "fake-sd"
+    dcim = fake_sd_path / "DCIM"
+    dcim.mkdir(parents=True)
+    (dcim / "IMG_0001.ORF").write_bytes(b"test")
+
+    monkeypatch.setattr(cli_module, "FAKE_SD_PATH", fake_sd_path)
+    monkeypatch.setattr(
+        cli_module,
+        "DEMO_TEMPLATE_DIR",
+        Path(__file__).parent.parent / "src" / "snapimport" / "demo",
+    )
+
+    photos_dir = tmp_path / "photos"
+    photos_dir.mkdir()
+    logs_dir = tmp_path / "logs"
+    logs_dir.mkdir()
+
+    cfg = _make_config(photos_dir, logs_dir)
+    monkeypatch.setattr(cli_module, "load_config", lambda: cfg)
+
+    from snapimport import core as core_module
+
+    monkeypatch.setattr(core_module, "detect_sds", lambda: [str(fake_sd_path)])
+    monkeypatch.setattr(core_module, "confirm_import", lambda: True)
+    monkeypatch.setattr(core_module, "get_exif_date", lambda f: "2023-12-25")
+
+    monkeypatch.setattr("rich.prompt.Confirm.ask", lambda prompt, default=False: True)
+
+    result = runner.invoke(cli_module.app, ["import"])
+
+    assert result.exit_code == 0
+    orf_files = list(dcim.glob("IMG_*.ORF"))
+    assert len(orf_files) == 10
+    assert "Fake SD restored" in result.output
+
+
+@pytest.mark.cli
+def test_import_skips_restore_when_declined(tmp_path, monkeypatch):
+    """Verify import does not restore when user declines the prompt."""
+    runner = CliRunner()
+
+    fake_sd_path = tmp_path / "fake-sd"
+    dcim = fake_sd_path / "DCIM"
+    dcim.mkdir(parents=True)
+    (dcim / "IMG_0001.ORF").write_bytes(b"test")
+
+    monkeypatch.setattr(cli_module, "FAKE_SD_PATH", fake_sd_path)
+    monkeypatch.setattr(
+        cli_module,
+        "DEMO_TEMPLATE_DIR",
+        Path(__file__).parent.parent / "src" / "snapimport" / "demo",
+    )
+
+    photos_dir = tmp_path / "photos"
+    photos_dir.mkdir()
+    logs_dir = tmp_path / "logs"
+    logs_dir.mkdir()
+
+    cfg = _make_config(photos_dir, logs_dir)
+    monkeypatch.setattr(cli_module, "load_config", lambda: cfg)
+
+    from snapimport import core as core_module
+
+    monkeypatch.setattr(core_module, "detect_sds", lambda: [str(fake_sd_path)])
+    monkeypatch.setattr(core_module, "confirm_import", lambda: True)
+    monkeypatch.setattr(core_module, "get_exif_date", lambda f: "2023-12-25")
+
+    monkeypatch.setattr("rich.prompt.Confirm.ask", lambda prompt, default=False: False)
+
+    result = runner.invoke(cli_module.app, ["import"])
+
+    assert result.exit_code == 0
+    orf_files = list(dcim.glob("IMG_*.ORF"))
+    assert len(orf_files) == 1
+    assert orf_files[0].name == "IMG_0001.ORF"
+
+
+@pytest.mark.cli
+def test_import_no_restore_prompt_for_real_sd(tmp_path, monkeypatch):
+    """Verify import does not prompt restore for non-fake-sd sources."""
+    runner = CliRunner()
+
+    real_sd_path = tmp_path / "real_sd"
+    dcim = real_sd_path / "DCIM"
+    dcim.mkdir(parents=True)
+    (dcim / "IMG_0001.ORF").write_bytes(b"test")
+
+    fake_sd_path = tmp_path / "fake-sd"
+
+    monkeypatch.setattr(cli_module, "FAKE_SD_PATH", fake_sd_path)
+    monkeypatch.setattr(
+        cli_module,
+        "DEMO_TEMPLATE_DIR",
+        Path(__file__).parent.parent / "src" / "snapimport" / "demo",
+    )
+
+    photos_dir = tmp_path / "photos"
+    photos_dir.mkdir()
+    logs_dir = tmp_path / "logs"
+    logs_dir.mkdir()
+
+    cfg = _make_config(photos_dir, logs_dir)
+    monkeypatch.setattr(cli_module, "load_config", lambda: cfg)
+
+    from snapimport import core as core_module
+
+    monkeypatch.setattr(core_module, "detect_sds", lambda: [str(real_sd_path)])
+    monkeypatch.setattr(core_module, "confirm_import", lambda: True)
+    monkeypatch.setattr(core_module, "get_exif_date", lambda f: "2023-12-25")
+
+    confirm_called = []
+    original_confirm = None
+
+    def mock_confirm(prompt, default=False):
+        confirm_called.append(prompt)
+        return True
+
+    monkeypatch.setattr("rich.prompt.Confirm.ask", mock_confirm)
+
+    result = runner.invoke(cli_module.app, ["import"])
+
+    assert result.exit_code == 0
+    reset_prompts = [p for p in confirm_called if "Reset fake SD" in p]
+    assert len(reset_prompts) == 0

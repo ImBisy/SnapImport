@@ -13,13 +13,15 @@ from typing import Optional
 from rich.panel import Panel
 from rich.prompt import Confirm
 
+from .progress import console
+
 from .config import Config, config_exists, load_config, save_config, get_config_path
 from .core import import_photos
 from .progress import (
-    console,
     prompt_logs_dir,
     prompt_photos_dir,
     show_error_panel,
+    show_fake_sd_ready_panel,
     show_header,
     show_success_panel,
     show_welcome_panel,
@@ -39,7 +41,7 @@ app = typer.Typer()
 @app.callback(invoke_without_command=True)
 def main(ctx: typer.Context):
     """Main entry point - shows help or runs wizard/import.
-    
+
     Args:
         ctx: Typer context for command detection.
     """
@@ -69,7 +71,7 @@ def import_cmd(
     ),
 ):
     """Import photos from detected SD card.
-    
+
     Args:
         dry_run: Show planned actions without executing.
         verbose: Print per-file progress.
@@ -86,7 +88,77 @@ def import_cmd(
         if not config:
             show_error_panel("Config not found after setup.")
             return
-    import_photos(config, dry_run, verbose=verbose, overwrite=overwrite)
+    stats = import_photos(config, dry_run, verbose=verbose, overwrite=overwrite)
+
+    if stats and isinstance(stats, dict):
+        _handle_fake_sd_restore(stats)
+
+
+FAKE_SD_PATH = Path.home() / "fake-sd"
+DEMO_TEMPLATE_DIR = Path(__file__).parent / "demo"
+
+
+@app.command("fake-sd", hidden=True)
+def fake_sd_cmd():
+    """Developer command — creates a fake SD card for testing."""
+    fake_sd = FAKE_SD_PATH
+    dcim = fake_sd / "DCIM"
+    dcim.mkdir(parents=True, exist_ok=True)
+
+    for f in dcim.iterdir():
+        if f.is_file():
+            f.unlink()
+
+    template_files = list(DEMO_TEMPLATE_DIR.glob("IMG_*.ORF"))
+    for tf in template_files:
+        dst = dcim / tf.name
+        dst.write_bytes(tf.read_bytes())
+
+    xmp_files = list(DEMO_TEMPLATE_DIR.glob("IMG_*.XMP"))
+    for xf in xmp_files:
+        dst = dcim / xf.name
+        dst.write_text(xf.read_text())
+
+    show_fake_sd_ready_panel(fake_sd, len(template_files))
+
+
+def _handle_fake_sd_restore(stats: dict):
+    """Handle post-import restore prompt for fake SD card.
+
+    Args:
+        stats: Import statistics dictionary containing source_volume.
+    """
+    source_volume = stats.get("source_volume")
+    if not source_volume:
+        return
+
+    fake_sd = FAKE_SD_PATH.resolve()
+    if Path(source_volume).resolve() != fake_sd:
+        return
+
+    should_restore = Confirm.ask(
+        "Reset fake SD card to original contents?",
+        default=False,
+    )
+
+    if should_restore:
+        dcim = fake_sd / "DCIM"
+        if dcim.exists():
+            for f in dcim.iterdir():
+                if f.is_file():
+                    f.unlink()
+
+        template_files = list(DEMO_TEMPLATE_DIR.glob("IMG_*.ORF"))
+        for tf in template_files:
+            dst = dcim / tf.name
+            dst.write_bytes(tf.read_bytes())
+
+        xmp_files = list(DEMO_TEMPLATE_DIR.glob("IMG_*.XMP"))
+        for xf in xmp_files:
+            dst = dcim / xf.name
+            dst.write_text(xf.read_text())
+
+        console.print("✓ Fake SD restored — ready for next run")
 
 
 @app.command()
@@ -106,7 +178,7 @@ def rename(
     ),
 ):
     """Rename files in a folder using EXIF data.
-    
+
     Args:
         path: Folder path to rename files in (uses config.photos_dir if None).
         log: Log renamed files as imported in seen-files.txt.
@@ -302,7 +374,7 @@ def reset_demo_cmd(
 
 def run_wizard():
     """Run the interactive setup wizard to configure SnapImport.
-    
+
     Prompts user for photos and logs directories, saves config,
     and shows welcome panel.
     """
