@@ -2,16 +2,23 @@
 
 SD card to dated perfection in one drag. Prettier, friendlier, still macOS native.
 
+> Full wizard setup, EXIF renaming, live progress, dry-run, verbose mode, conflict handling, and robust error reporting.
+
+![Version](https://img.shields.io/badge/version-1.0.0-green?style=for-the-badge)
 ![License](https://img.shields.io/badge/license-MIT-blue?style=for-the-badge)
 ![Platform](https://img.shields.io/badge/platform-macOS-black?style=for-the-badge)
-![Language](https://img.shields.io/badge/language-bash-121011?style=for-the-badge&logo=gnubash&logoColor=white)
+![Language](https://img.shields.io/badge/language-Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
 
 ### Quick Start (20 seconds)
 
-1. `uv tool install snapimport` (or `pipx install snapimport`)
-2. `snapimport`
-   → drag your photos folder, hit enter for logs → done forever
-3. `snapimport import` (or `--dry-run` first)
+1. `snapimport` (first run → wizard)
+2. `snapimport import --dry-run` (preview)
+3. `snapimport import` (do it)
+
+### Reconfigure Anytime
+
+- `snapimport setup` — Re-run the wizard
+- `snapimport reset-demo` — Developer reset to first-run state
 
 ## Features
 
@@ -119,19 +126,10 @@ No more shell script hassles – pure Python magic.
 
 ```bash
 # Run all tests
-pytest
-
-# Run only unit tests (fast)
-pytest -m unit
-
-# Run only integration tests
-pytest -m integration
-
-# Run CLI tests
-pytest -m cli
+uv run pytest -q --tb=short
 
 # Run with coverage
-pytest --cov=snapimport --cov-report=term-missing
+uv run pytest --cov=snapimport --cov-report=term-missing
 ```
 
 ### Test Markers

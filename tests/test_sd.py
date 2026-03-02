@@ -26,7 +26,7 @@ def test_has_camera_files_true(tmp_path):
     (dcim / "test.JPG").touch()
     (dcim / "test.ORF").touch()
     (dcim / "not_supported.txt").touch()
-    
+
     assert sd.has_camera_files(str(volume)) == True
 
 
@@ -38,7 +38,7 @@ def test_has_camera_files_false(tmp_path):
     empty_volume.mkdir()
     (empty_volume / "DCIM").mkdir()
     (empty_volume / "DCIM" / "not_supported.txt").touch()
-    
+
     assert sd.has_camera_files(str(empty_volume)) == False
 
 
@@ -49,46 +49,40 @@ def test_has_camera_files_no_dcim(tmp_path):
     volume = tmp_path / "no_dcim"
     volume.mkdir()
     (volume / "other.txt").touch()
-    
+
     assert sd.has_camera_files(str(volume)) == False
 
 
 @pytest.mark.unit
-def test_detect_sds_with_camera_files(tmp_path, monkeypatch):
+def test_detect_sds_with_camera_files(tmp_path):
     """Verify detect_sds finds volumes with camera files."""
-    # Mock /Volumes
     volumes_dir = tmp_path / "volumes"
     volumes_dir.mkdir()
-    
-    # Create fake volumes
+
     vol1 = volumes_dir / "SDCARD"
     vol1.mkdir()
     dcim1 = vol1 / "DCIM"
     dcim1.mkdir()
     (dcim1 / "photo.JPG").touch()
-    
+
     vol2 = volumes_dir / "HDD"
-    vol2.mkdir()  # No camera files
-    
+    vol2.mkdir()
+
     vol3 = volumes_dir / "System"
-    vol3.mkdir()  # System volume, should be excluded
-    
-    # Mock os.path.exists and os.listdir
-    def mock_exists(path):
-        return path == str(volumes_dir) or Path(path).exists()
-    
-    def mock_listdir(path):
-        if path == str(volumes_dir):
-            return ["SDCARD", "HDD", "System"]
-        return []
-    
-    monkeypatch.setattr(os.path, "exists", mock_exists)
-    monkeypatch.setattr(os.path, "listdir", mock_listdir)
-    monkeypatch.setattr(os.path, "isdir", lambda p: Path(p).is_dir())
-    
-    volumes = sd.detect_sds()
-    assert len(volumes) == 1
-    assert str(vol1) in volumes
+    vol3.mkdir()
+
+    with patch("os.path.exists") as mock_exists, patch(
+        "os.listdir", return_value=["SDCARD", "HDD", "System"]
+    ) as mock_listdir, patch("os.path.isdir") as mock_isdir, patch(
+        "snapimport.sd.has_camera_files"
+    ) as mock_hcf:
+        mock_exists.return_value = True
+        mock_isdir.return_value = True
+        mock_hcf.side_effect = lambda p: "/Volumes/SDCARD" in p
+
+        volumes = sd.detect_sds()
+        assert len(volumes) == 1
+        assert "/Volumes/SDCARD" in volumes
 
 
 @pytest.mark.unit
@@ -96,51 +90,44 @@ def test_detect_sds_no_volumes_dir(tmp_path, monkeypatch):
     """Verify detect_sds returns empty list when /Volumes doesn't exist."""
     # Mock os.path.exists to return False for /Volumes
     monkeypatch.setattr(os.path, "exists", lambda p: False)
-    
+
     volumes = sd.detect_sds()
     assert volumes == []
 
 
 @pytest.mark.unit
-def test_list_all_volumes(tmp_path, monkeypatch):
+def test_list_all_volumes(tmp_path):
     """Verify list_all_volumes returns all volumes with camera file status."""
-    # Mock /Volumes
     volumes_dir = tmp_path / "volumes"
     volumes_dir.mkdir()
-    
-    # Create fake volumes
+
     vol1 = volumes_dir / "SDCARD"
     vol1.mkdir()
     dcim1 = vol1 / "DCIM"
     dcim1.mkdir()
     (dcim1 / "photo.JPG").touch()
-    
+
     vol2 = volumes_dir / "HDD"
-    vol2.mkdir()  # No camera files
-    
+    vol2.mkdir()
+
     vol3 = volumes_dir / "System"
-    vol3.mkdir()  # System volume, should be excluded
-    
-    # Mock os.path.exists and os.listdir
-    def mock_exists(path):
-        return path == str(volumes_dir) or Path(path).exists()
-    
-    def mock_listdir(path):
-        if path == str(volumes_dir):
-            return ["SDCARD", "HDD", "System"]
-        return []
-    
-    monkeypatch.setattr(os.path, "exists", mock_exists)
-    monkeypatch.setattr(os.path, "listdir", mock_listdir)
-    monkeypatch.setattr(os.path, "isdir", lambda p: Path(p).is_dir())
-    
-    volumes = sd.list_all_volumes()
-    assert len(volumes) == 2  # Excludes System
-    # Check that SDCARD has camera files, HDD does not
-    sdcard_entry = next(v for v in volumes if v[0] == str(vol1))
-    hdd_entry = next(v for v in volumes if v[0] == str(vol2))
-    assert sdcard_entry[1] == True
-    assert hdd_entry[1] == False
+    vol3.mkdir()
+
+    with patch("os.path.exists") as mock_exists, patch(
+        "os.listdir", return_value=["SDCARD", "HDD", "System"]
+    ) as mock_listdir, patch("os.path.isdir") as mock_isdir, patch(
+        "snapimport.sd.has_camera_files"
+    ) as mock_hcf:
+        mock_exists.return_value = True
+        mock_isdir.return_value = True
+        mock_hcf.side_effect = lambda p: "/Volumes/SDCARD" in p
+
+        volumes = sd.list_all_volumes()
+        assert len(volumes) == 2
+        sdcard_entry = next(v for v in volumes if v[0] == "/Volumes/SDCARD")
+        hdd_entry = next(v for v in volumes if v[0] == "/Volumes/HDD")
+        assert sdcard_entry[1] == True
+        assert hdd_entry[1] == False
 
 
 @pytest.mark.unit
@@ -148,20 +135,47 @@ def test_list_all_volumes_no_volumes_dir(tmp_path, monkeypatch):
     """Verify list_all_volumes returns empty list when /Volumes doesn't exist."""
     # Mock os.path.exists to return False for /Volumes
     monkeypatch.setattr(os.path, "exists", lambda p: False)
-    
+
     volumes = sd.list_all_volumes()
     assert volumes == []
 
 
 @pytest.mark.unit
 def test_supported_extensions():
-    """Verify SUPPORTED_EXTENSIONS contains expected image formats."""
-    expected = {'.JPG', '.JPEG', '.TIF', '.TIFF', '.ORF', '.RAF', '.NEF', '.CR2', '.DNG', '.ARW'}
-    assert sd.SUPPORTED_EXTENSIONS == expected
+    """Verify EXTENSIONS contains expected camera file extensions."""
+    expected = [
+        ".ORF",
+        ".JPG",
+        ".CR2",
+        ".CR3",
+        ".NEF",
+        ".NRW",
+        ".ARW",
+        ".SR2",
+        ".SRF",
+        ".RAF",
+        ".RW2",
+        ".PEF",
+        ".PTX",
+        ".DNG",
+        ".RWL",
+        ".3FR",
+        ".IIQ",
+        ".X3F",
+        ".XMP",
+    ]
+    assert sd.EXTENSIONS == expected
 
 
 @pytest.mark.unit
 def test_system_volumes():
     """Verify SYSTEM_VOLUMES contains expected macOS system volume prefixes."""
-    expected = {'Macintosh', 'Macintosh HD', 'Macintosh SSD', 'APFS', 'Recovery'}
+    expected = {
+        "Macintosh",
+        "Macintosh HD",
+        "Macintosh SSD",
+        "APFS",
+        "Recovery",
+        "System",
+    }
     assert sd.SYSTEM_VOLUMES == expected

@@ -4,11 +4,12 @@ build-backend = "hatchling.build"
 
 [project]
 name = "snapimport"
-version = "0.1.0"
-description = "SD card to dated perfection in one drag. Prettier, friendlier, still macOS native."
+version = "1.0.0"
+description = "Seamlessly import & organise photos from SD cards with EXIF-smart renaming, live progress bars, and wizard setup."
 readme = "README.md"
-license = { file = "LICENSE" }
-requires-python = ">=3.8"
+license = { text = "MIT" }
+requires-python = ">=3.11"
+keywords = ["photography", "sd-card", "exif", "photo-import", "cli", "macos"]
 authors = [
   { name = "ImBisy" },
 ]
@@ -22,16 +23,16 @@ dependencies = [
   "platformdirs",
 ]
 classifiers = [
-  "Development Status :: 4 - Beta",
+  "Development Status :: 5 - Production/Stable",
+  "Environment :: Console",
   "Intended Audience :: End Users/Desktop",
   "License :: OSI Approved :: MIT License",
   "Operating System :: MacOS",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.8",
-  "Programming Language :: Python :: 3.9",
-  "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
+  "Topic :: Multimedia :: Graphics",
+  "Topic :: Utilities",
 ]
 
 [project.optional-dependencies]

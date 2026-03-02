@@ -1,23 +1,31 @@
+# Python
 __pycache__/
 **/__pycache__/
 *.pyc
 *.pyo
-.pytest_cache/
-*.pytest_cache/
-.venv/
+*.egg-info/
 dist/
 build/
-.DS_Store
-.idea/
-.vscode/
+.venv/
+.uv/
 
-# User config and data (DO NOT COMMIT)
-.config/snapimport/
-*.log
+# SnapImport user data (never commit these)
 seen-files.txt
 import-errors.log
+*.log
 
-# OS generated files
-Thumbs.db
-*.swp
-*~
+# Config (contains real user paths)
+.config/
+
+# Test/coverage artifacts
+.coverage
+htmlcov/
+.pytest_cache/
+*.pytest_cache/
+
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
