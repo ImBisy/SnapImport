@@ -36,13 +36,13 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
-tests = ["pytest", "pytest-cov", "pytest-timeout", "piexif", "pillow"]
+tests = ["pytest", "pytest-cov", "piexif", "pillow"]
 
 [tool.pytest.ini_options]
 markers = [
-  "unit: fast isolated unit tests",
-  "cli: Typer CliRunner tests",
-  "integration: full journey tests",
+  "unit: fast isolated tests for individual functions",
+  "integration: full journey tests using fixtures",
+  "cli: tests that exercise the Typer CLI via CliRunner",
 ]
 addopts = "--cov=snapimport --cov-report=term-missing"
 timeout = 10

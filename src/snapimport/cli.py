@@ -276,19 +276,6 @@ def wizard_cmd():
     console.print(table)
 
 
-@app.command("gui")
-def gui():
-    """Launch the web-based GUI interface."""
-    os.execv(  # pragma: no cover
-        sys.executable,
-        [
-            sys.executable,
-            "-c",
-            "from snapimport.gui import start_gui; from nicegui import ui; ui.run(title='SnapImport', native=False, reload=False, window_size=(780, 580))",
-        ],
-    )
-
-
 @app.command("setup")
 def setup_cmd():
     """Run the setup wizard to configure SnapImport."""

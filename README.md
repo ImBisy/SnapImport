@@ -29,7 +29,7 @@ SD card to dated perfection in one drag. Prettier, friendlier, still macOS nativ
 - **Permission Handling**: Prompts for `sudo chown` if files are root-owned, just like the original.
 - **Logging**: Tracks imported files in `seen-files.txt` for auditing.
 - **Dry Run Mode**: Preview exact renames before committing.
-- **Rich UI**: Eye candy everywhere – panels, tables, prompts, all dark/light theme friendly.
+- **Rich Terminal UI**: Eye candy everywhere – panels, tables, prompts, all dark/light theme friendly.
 
 ## Installation
 
