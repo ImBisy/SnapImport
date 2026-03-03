@@ -157,7 +157,7 @@ def write_import_errors(logs_dir: Path, failures: List[Dict[str, str]]):
 def show_overwrite_warning():
     """Display warning when overwrite mode is enabled."""
     panel = Panel(
-        "⚠ Overwrite mode enabled — existing files will be replaced.",
+        "⚠ Overwrite mode enabled - existing files will be replaced.",
         border_style="yellow",
     )
     console.print(panel)

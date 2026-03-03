@@ -2,20 +2,47 @@ name: CI
 
 on:
   push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+    branches: ['**']
 
 jobs:
-  test:
-    runs-on: macos-latest
-
+  test-unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v4
-      - name: Install dependencies
-        run: uv sync --all-extras
-      - name: Run tests
-        run: uv run pytest -q --tb=short
-      - name: Coverage check
-        run: uv run pytest --cov=snapimport --cov-fail-under=80
+      - run: uv python install 3.12
+      - run: uv sync --all-extras
+      - run: uv run pytest -m unit --cov=src/snapimport --cov-fail-under=80 -q --tb=short
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage-unit
+          path: .coverage
+
+  test-cli:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+      - run: uv python install 3.12
+      - run: uv sync --all-extras
+      - run: uv run pytest -m cli --cov=src/snapimport --cov-fail-under=80 -q --tb=short
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage-cli
+          path: .coverage
+
+  test-integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+      - run: uv python install 3.12
+      - run: uv sync --all-extras
+      - run: uv run pytest -m integration --cov=src/snapimport --cov-fail-under=80 -q --tb=short
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage-integration
+          path: .coverage

@@ -563,6 +563,7 @@ tests = [
     { name = "pillow" },
     { name = "pytest" },
     { name = "pytest-cov" },
+    { name = "pytest-timeout" },
 ]
 
 [package.dev-dependencies]
@@ -580,6 +581,7 @@ requires-dist = [
     { name = "pyexiftool" },
     { name = "pytest", marker = "extra == 'tests'" },
     { name = "pytest-cov", marker = "extra == 'tests'" },
+    { name = "pytest-timeout", marker = "extra == 'tests'" },
     { name = "rich", specifier = "==13.7.1" },
     { name = "tomlkit" },
     { name = "typer" },

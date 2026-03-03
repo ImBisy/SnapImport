@@ -96,3 +96,145 @@ def test_find_files_filters_and_sort(monkeypatch, tmp_path):
     files = find_files(tmp_path)
     # should include only JPG/ORF extensions: 3 files
     assert len(files) == 3
+
+
+@pytest.mark.unit
+def test_is_already_renamed_true():
+    """Verify is_already_renamed detects correctly formatted filenames."""
+    from snapimport.rename import is_already_renamed
+    
+    assert is_already_renamed(Path("24-02-24-001.JPG")) is True
+    assert is_already_renamed(Path("23-12-31-123.ORF")) is True
+    assert is_already_renamed(Path("22-01-01-001.XMP")) is True
+
+
+@pytest.mark.unit
+def test_is_already_renamed_false():
+    """Verify is_already_renamed rejects incorrectly formatted filenames."""
+    from snapimport.rename import is_already_renamed
+    
+    assert is_already_renamed(Path("IMG_001.JPG")) is False
+    assert is_already_renamed(Path("photo.jpg")) is False
+    assert is_already_renamed(Path("24-02-24-001")) is True  # No extension but matches pattern
+    assert is_already_renamed(Path("24-02-24-1.JPG")) is False  # Not 3 digits
+    assert is_already_renamed(Path("2024-02-24-001.JPG")) is False  # 4-digit year
+
+
+@pytest.mark.unit
+def test_get_exif_date_subprocess_failure(monkeypatch):
+    """Verify get_exif_date handles subprocess failures gracefully."""
+    from snapimport.rename import get_exif_date
+    import subprocess
+    
+    # Mock subprocess.run to raise an exception
+    def mock_run(*args, **kwargs):
+        raise subprocess.CalledProcessError(1, "exiftool")
+    
+    monkeypatch.setattr("snapimport.rename.subprocess.run", mock_run)
+    assert get_exif_date(Path("test.JPG")) is None
+
+
+@pytest.mark.unit
+def test_get_exif_date_malformed_output(monkeypatch):
+    """Verify get_exif_date handles malformed exiftool output."""
+    from snapimport.rename import get_exif_date
+    
+    class MockResult:
+        def __init__(self, stdout):
+            self.stdout = stdout
+    
+    def mock_run(*args, **kwargs):
+        return MockResult("malformed output without colon")
+    
+    monkeypatch.setattr("snapimport.rename.subprocess.run", mock_run)
+    assert get_exif_date(Path("test.JPG")) is None
+
+
+@pytest.mark.unit
+def test_get_renames_skips_xmp_files(monkeypatch, tmp_path):
+    """Verify get_renames skips XMP files but includes associated XMPs."""
+    from snapimport.rename import get_renames
+    
+    # Create test files
+    jpg_file = tmp_path / "test.JPG"
+    xmp_file = tmp_path / "test.XMP"
+    jpg_file.touch()
+    xmp_file.touch()
+    
+    dates = ["24-02-24"]
+    monkeypatch.setattr("snapimport.rename.subprocess.run", _mock_run_factory(dates))
+    
+    renames = get_renames([jpg_file, xmp_file], tmp_path)
+    
+    # Should only rename the JPG, but include the associated XMP
+    assert len(renames) == 2
+    assert any("JPG" in rename[1] for rename in renames)
+    assert any("XMP" in rename[1] for rename in renames)
+
+
+@pytest.mark.unit
+def test_get_renames_no_exif_date(monkeypatch, tmp_path):
+    """Verify get_renames skips files without EXIF dates."""
+    from snapimport.rename import get_renames
+    
+    jpg_file = tmp_path / "test.JPG"
+    jpg_file.touch()
+    
+    # Mock get_exif_date to return None
+    def mock_get_exif_date(file):
+        return None
+    
+    monkeypatch.setattr("snapimport.rename.get_exif_date", mock_get_exif_date)
+    
+    renames = get_renames([jpg_file], tmp_path)
+    assert len(renames) == 0
+
+
+@pytest.mark.unit
+def test_get_renames_for_folder(monkeypatch, tmp_path):
+    """Verify get_renames_for_folder returns mappings without executing."""
+    from snapimport.rename import get_renames_for_folder
+    
+    jpg_file = tmp_path / "test.JPG"
+    jpg_file.touch()
+    
+    dates = ["24-02-24"]
+    monkeypatch.setattr("snapimport.rename.subprocess.run", _mock_run_factory(dates))
+    
+    renames = get_renames_for_folder(tmp_path)
+    assert len(renames) == 1
+    assert renames[0][0] == str(jpg_file)
+
+
+@pytest.mark.unit
+def test_execute_renames_dry_run(tmp_path):
+    """Verify execute_renames doesn't rename files in dry_run mode."""
+    from snapimport.rename import execute_renames
+    
+    old_file = tmp_path / "old.JPG"
+    new_file = tmp_path / "new.JPG"
+    old_file.touch()
+    
+    renames = [(str(old_file), str(new_file))]
+    result = execute_renames(renames, dry_run=True)
+    
+    assert result == renames
+    assert old_file.exists()  # File should still exist
+    assert not new_file.exists()  # New file should not exist
+
+
+@pytest.mark.unit
+def test_execute_renames_actual_rename(tmp_path):
+    """Verify execute_renames actually renames files when not dry_run."""
+    from snapimport.rename import execute_renames
+    
+    old_file = tmp_path / "old.JPG"
+    new_file = tmp_path / "new.JPG"
+    old_file.touch()
+    
+    renames = [(str(old_file), str(new_file))]
+    result = execute_renames(renames, dry_run=False)
+    
+    assert result == renames
+    assert not old_file.exists()  # Old file should be gone
+    assert new_file.exists()  # New file should exist

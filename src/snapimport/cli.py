@@ -100,7 +100,7 @@ DEMO_TEMPLATE_DIR = Path(__file__).parent / "demo"
 
 @app.command("fake-sd", hidden=True)
 def fake_sd_cmd():
-    """Developer command — creates a fake SD card for testing."""
+    """Developer command - creates a fake SD card for testing."""
     fake_sd = FAKE_SD_PATH
     dcim = fake_sd / "DCIM"
     dcim.mkdir(parents=True, exist_ok=True)
@@ -158,7 +158,7 @@ def _handle_fake_sd_restore(stats: dict):
             dst = dcim / xf.name
             dst.write_text(xf.read_text())
 
-        console.print("✓ Fake SD restored — ready for next run")
+        console.print("✓ Fake SD restored - ready for next run")
 
 
 @app.command()
@@ -309,7 +309,7 @@ def reset_demo_cmd(
     ),
 ):
     """
-    Developer tool — resets SnapImport to first-run state.
+    Developer tool - resets SnapImport to first-run state.
 
     Deletes config.toml, first-run marker, seen-files.txt, and import-errors.log.
     """
@@ -369,7 +369,7 @@ def reset_demo_cmd(
         except Exception as e:
             console.print(f"Warning: Could not delete {f}: {e}")
 
-    console.print("✓ Reset Complete — run `snapimport` to start fresh")
+    console.print("✓ Reset Complete - run `snapimport` to start fresh")
 
 
 def run_wizard():

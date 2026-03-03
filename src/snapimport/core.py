@@ -105,7 +105,7 @@ def copy_files_with_progress(
             status = "skipped_seen"
             skipped_seen += 1
             if verbose:
-                date = get_exif_date(file) or "no EXIF — using mtime"
+                date = get_exif_date(file) or "no EXIF - using mtime"
                 new_name = dst_path.name
                 console.log(f"[{file.name}] → [{new_name}] | EXIF: {date} | {status}")
             continue
@@ -114,7 +114,7 @@ def copy_files_with_progress(
             status = "skipped_exists"
             skipped_exists += 1
             if verbose:
-                date = get_exif_date(file) or "no EXIF — using mtime"
+                date = get_exif_date(file) or "no EXIF - using mtime"
                 console.log(
                     f"[{file.name}] → [{dst_path.name}] | EXIF: {date} | {status}"
                 )
@@ -136,7 +136,7 @@ def copy_files_with_progress(
             )
             status = "failed"
         if verbose:
-            date = get_exif_date(file) or "no EXIF — using mtime"
+            date = get_exif_date(file) or "no EXIF - using mtime"
             new_name = dst_path.name
             console.log(f"[{file.name}] → [{new_name}] | EXIF: {date} | {status}")
     progress.remove_task(task_id)
